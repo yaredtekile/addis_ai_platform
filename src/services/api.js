@@ -3,7 +3,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
-export const ttsRequest = async (language, texts) => {
+export const ttsRequest = async (language, texts, apiKey) => {
   // texts: array of strings
   // API only supports one text at a time, so send requests in parallel
   const results = await Promise.all(
@@ -13,7 +13,7 @@ export const ttsRequest = async (language, texts) => {
         { text, language },
         {
           headers: {
-            'X-API-Key': API_KEY,
+            'X-API-Key': apiKey || API_KEY,
             'Content-Type': 'application/json',
           },
         }
@@ -25,7 +25,7 @@ export const ttsRequest = async (language, texts) => {
   return results;
 };
 
-export const sttRequest = async (language, audioFile) => {
+export const sttRequest = async (language, audioFile, apiKey) => {
   const formData = new FormData();
   formData.append('chat_audio_input', audioFile);
   formData.append('request_data', JSON.stringify({ target_language: language }));
@@ -34,7 +34,7 @@ export const sttRequest = async (language, audioFile) => {
     formData,
     {
       headers: {
-        'X-API-Key': API_KEY,
+        'X-API-Key': apiKey || API_KEY,
         // 'Content-Type' will be set automatically by Axios for FormData
       },
     }
