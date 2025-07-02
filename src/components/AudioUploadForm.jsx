@@ -54,6 +54,7 @@ export default function AudioUploadForm({ onSubmit, loading, language }) {
       )}
       {error && <div className="text-red-500 text-xs font-semibold mb-2">{error}</div>}
       <button type="submit" disabled={loading || files.length === 0} className="bg-green-600 text-white rounded-lg px-4 py-2 font-semibold shadow hover:bg-green-700 transition-all disabled:opacity-50 text-xs focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-white glow-btn-main-stt">{loading ? 'Processing...' : `Send ${files.length || ''} to STT`}</button>
+      {loading && <div className="text-xs text-green-600 mt-2">Processing... You can stop the process above.</div>}
       <style>{`
         .glow-btn-main-stt:hover, .glow-btn-main-stt:focus { box-shadow: 0 0 0 3px #22c55e, 0 2px 8px 0 #22c55e33; }
       `}</style>

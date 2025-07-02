@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HiKey } from 'react-icons/hi2';
 import LanguageSelector from './components/LanguageSelector';
 import TextInputForm from './components/TextInputForm';
@@ -15,6 +15,10 @@ function App() {
   const [tab, setTab] = useState('tts');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('tts_stt_api_key') || '');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [_, setSttStopRequested] = useState(false); // Only setter used for UI
+  const [__, setTtsStopRequested] = useState(false); // Only setter used for UI
+  const ttsStopRequestedRef = useRef(false);
+  const sttStopRequestedRef = useRef(false);
 
   // Helper: convert File to base64
   const fileToBase64 = (file) => {
@@ -50,51 +54,66 @@ function App() {
 
   const handleTTS = async (texts) => {
     setTtsLoading(true);
+    setTtsStopRequested(false);
+    ttsStopRequestedRef.current = false;
     try {
-      const data = await ttsRequest(language, texts, apiKey);
-      setEntries(prev => [
-        ...data.map(d => ({ type: 'tts', text: d.text, audioBase64: d.audioBase64 })),
-        ...prev
-      ]);
-    } catch {
-      alert('TTS failed.');
+      for (const text of texts) {
+        if (ttsStopRequestedRef.current) break;
+        try {
+          const data = await ttsRequest(language, [text], apiKey);
+          setEntries(prev => [
+            { type: 'tts', text: data[0].text, audioBase64: data[0].audioBase64 },
+            ...prev
+          ]);
+        } catch {
+          alert(`TTS failed for: ${text}`);
+        }
+      }
     } finally {
       setTtsLoading(false);
+      setTtsStopRequested(false);
+      ttsStopRequestedRef.current = false;
     }
   };
 
   const handleSTT = async (audioFiles) => {
     setSttLoading(true);
+    setSttStopRequested(false);
+    sttStopRequestedRef.current = false;
     try {
-      const results = await Promise.all(audioFiles.map(async (audioFile) => {
-        const data = await sttRequest(language, audioFile, apiKey);
-        const audioBase64 = await fileToBase64(audioFile);
-        let cleanTrans = data.transcription_clean || '';
-        cleanTrans = cleanTrans
-          .split('\n')
-          .filter(line => !/^```(text)?/.test(line.trim()))
-          .join('\n')
-          .trim();
-        return {
-          type: 'stt',
-          transcription: data.transcription,
-          finish_reason: data.finish_reason,
-          usage_metadata: data.usage_metadata,
-          modelVersion: data.modelVersion,
-          transcription_raw: data.transcription_raw,
-          transcription_clean: cleanTrans,
-          audioBase64,
-          fileName: audioFile.name,
-        };
-      }));
-      setEntries(prev => [
-        ...results,
-        ...prev
-      ]);
-    } catch {
-      alert('STT failed.');
+      for (const audioFile of audioFiles) {
+        if (sttStopRequestedRef.current) break;
+        try {
+          const data = await sttRequest(language, audioFile, apiKey);
+          const audioBase64 = await fileToBase64(audioFile);
+          let cleanTrans = data.transcription_clean || '';
+          cleanTrans = cleanTrans
+            .split('\n')
+            .filter(line => !/^```(text)?/.test(line.trim()))
+            .join('\n')
+            .trim();
+          setEntries(prev => [
+            {
+              type: 'stt',
+              transcription: data.transcription,
+              finish_reason: data.finish_reason,
+              usage_metadata: data.usage_metadata,
+              modelVersion: data.modelVersion,
+              transcription_raw: data.transcription_raw,
+              transcription_clean: cleanTrans,
+              audioBase64,
+              fileName: audioFile.name,
+            },
+            ...prev
+          ]);
+        } catch {
+          alert(`STT failed for: ${audioFile.name}`);
+        }
+      }
     } finally {
       setSttLoading(false);
+      setSttStopRequested(false);
+      sttStopRequestedRef.current = false;
     }
   };
 
@@ -186,10 +205,43 @@ function App() {
               </button>
             </div>
             {/* Tab content */}
-            {tab === 'tts' && <TextInputForm onSubmit={handleTTS} loading={ttsLoading} audioEntries={filteredEntries} language={language} />}
+            {tab === 'tts' && (
+              <>
+                <TextInputForm onSubmit={handleTTS} loading={ttsLoading} audioEntries={filteredEntries} language={language} />
+                {ttsLoading && (
+                  <div className="flex justify-end mb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTtsStopRequested(true);
+                        ttsStopRequestedRef.current = true;
+                      }}
+                      className="text-xs px-3 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                )}
+                <AudioList entries={entries.filter(e => e.type === 'stt')} />
+              </>
+            )}
             {tab === 'stt' && (
               <>
                 <AudioUploadForm onSubmit={handleSTT} loading={sttLoading} language={language} />
+                {sttLoading && (
+                  <div className="flex justify-end mb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSttStopRequested(true);
+                        sttStopRequestedRef.current = true;
+                      }}
+                      className="text-xs px-3 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                )}
                 <AudioList entries={entries.filter(e => e.type === 'stt')} />
               </>
             )}

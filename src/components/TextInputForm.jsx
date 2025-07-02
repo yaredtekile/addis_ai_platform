@@ -97,6 +97,7 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
         <input type="file" accept=".xlsx,.xls" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
         <button type="submit" disabled={loading} className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold shadow hover:bg-blue-700 transition-all disabled:opacity-50 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-white glow-btn-main">{loading ? 'Processing...' : 'Send to TTS'}</button>
       </div>
+      {loading && <div className="text-xs text-blue-600 mt-2">Processing... You can stop the process above.</div>}
       {error && <div className="text-red-500 text-xs font-semibold mb-2">{error}</div>}
       <style>{`
         .glow-btn-main:hover, .glow-btn-main:focus { box-shadow: 0 0 0 3px #3b82f6, 0 2px 8px 0 #3b82f633; }
