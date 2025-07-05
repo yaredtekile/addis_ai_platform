@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HiKey } from 'react-icons/hi2';
+import { HiKey, HiSparkles } from 'react-icons/hi2';
 import LanguageSelector from './components/LanguageSelector';
 import TextInputForm from './components/TextInputForm';
 import AudioUploadForm from './components/AudioUploadForm';
@@ -121,33 +121,58 @@ function App() {
   const filteredEntries = tab === 'history' ? entries : entries.filter(e => (tab === 'tts' ? e.type === 'tts' : e.type === 'stt'));
 
   return (
-    <div className="min-h-screen w-full bg-white py-0 px-0">
-      <div className="w-full max-w-3xl mx-auto flex flex-col gap-8 py-10 px-2 md:px-0">
-        <div className="w-full bg-gray-50 border border-gray-200 shadow-xl rounded-2xl p-6 md:p-10 transition-all duration-300">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-center mb-2 text-gray-900 tracking-tight">Addis AI TTS & STT</h1>
-          <p className="text-center text-base text-gray-500 mb-8">Text-to-Speech & Speech-to-Text for Amharic and Afan Oromo. Powered by Addis AI.</p>
-          <div className="flex flex-col gap-6">
-            <div className="mb-6 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <div className="w-full bg-white/80 border border-blue-100 shadow-lg rounded-xl p-4 flex flex-col gap-2">
-                <div className="flex items-center gap-3 mb-2">
-                  <HiKey className="text-blue-400 text-xl" />
-                  <span className="text-base font-semibold text-gray-700">API Key</span>
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-0 px-0">
+      {/* Background decoration */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-blue-400/20 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div className="relative w-full max-w-4xl mx-auto flex flex-col gap-8 py-8 px-4 md:px-6 lg:px-8">
+        {/* Header Card */}
+        <div className="w-full bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl p-8 md:p-12 transition-all duration-300 hover:shadow-3xl">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+                <HiSparkles className="text-white text-2xl" />
+              </div>
+              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-900 tracking-tight">
+                Addis AI Platform
+              </h1>
+            </div>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Advanced Text-to-Speech & Speech-to-Text for Amharic and Afan Oromo. 
+              Powered by cutting-edge AI technology.
+            </p>
+          </div>
+
+          {/* API Key Section */}
+          <div className="mb-8">
+            <div className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 shadow-xl rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-500 rounded-xl shadow-md">
+                  <HiKey className="text-white text-lg" />
                 </div>
-                <div className="flex flex-col md:flex-row gap-2 md:items-center">
-                  <input
-                    id="api-key-input"
-                    type={showApiKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={e => setApiKey(e.target.value)}
-                    placeholder="Enter your API key..."
-                    className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm text-sm font-mono"
-                    autoComplete="off"
-                  />
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">API Configuration</h3>
+                  <p className="text-sm text-gray-600">Secure access to Addis AI services</p>
+                </div>
+              </div>
+              <div className="flex flex-col lg:flex-row gap-3 items-center">
+                <input
+                  id="api-key-input"
+                  type={showApiKey ? 'text' : 'password'}
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="Enter your API key..."
+                  className="flex-1 w-full rounded-xl border border-blue-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 shadow-sm text-sm font-mono transition-all duration-200"
+                  autoComplete="off"
+                />
+                <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setShowApiKey(v => !v)}
-                    className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500 hover:bg-blue-100 border border-gray-200 transition-all font-mono"
-                    tabIndex={-1}
+                    className="px-4 py-2 rounded-xl bg-white/80 text-gray-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                     title={showApiKey ? 'Hide API Key' : 'Show API Key'}
                   >
                     {showApiKey ? 'Hide' : 'Show'}
@@ -163,62 +188,107 @@ function App() {
                         window.location.reload();
                       }
                     }}
-                    className="text-xs px-2 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all font-mono"
+                    className="px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                     title="Clear all local storage and reset app"
                   >
-                    Clear Local Storage
+                    Reset App
                   </button>
                 </div>
-                <div className="text-xs text-gray-400 mt-1">Your API key is stored only in your browser and never sent anywhere else.</div>
+              </div>
+              <div className="text-xs text-gray-500 mt-3 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                Your API key is stored securely in your browser and never transmitted elsewhere
               </div>
             </div>
-            <LanguageSelector value={language} onChange={setLanguage} />
-            {/* Clear History Button */}
-            <div className="flex justify-end mb-2">
+          </div>
+
+          {/* Language Selector */}
+          <LanguageSelector value={language} onChange={setLanguage} />
+
+          {/* Action Buttons */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-sm text-gray-600">
+              {entries.length > 0 && (
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                  {entries.length} entries in history
+                </span>
+              )}
+            </div>
+            {entries.length > 0 && (
               <button
                 type="button"
                 onClick={() => { setEntries([]); localStorage.removeItem('tts_stt_entries'); }}
-                className="text-xs px-3 py-1 rounded bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600 border border-gray-200 transition-all"
+                className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
               >
                 Clear History
               </button>
+            )}
+          </div>
+
+          {/* Enhanced Tabs */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-gray-100/80 backdrop-blur-sm rounded-2xl p-1 shadow-inner">
+              <div className="flex gap-1">
+                <button
+                  className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                    tab === 'tts' 
+                      ? 'bg-white text-blue-700 shadow-lg transform scale-105' 
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-white/50'
+                  }`}
+                  onClick={() => setTab('tts')}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${tab === 'tts' ? 'bg-blue-500' : 'bg-gray-400'}`}></div>
+                    Text-to-Speech
+                  </div>
+                </button>
+                <button
+                  className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                    tab === 'stt' 
+                      ? 'bg-white text-green-700 shadow-lg transform scale-105' 
+                      : 'text-gray-600 hover:text-green-600 hover:bg-white/50'
+                  }`}
+                  onClick={() => setTab('stt')}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${tab === 'stt' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    Speech-to-Text
+                  </div>
+                </button>
+                <button
+                  className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                    tab === 'history' 
+                      ? 'bg-white text-gray-700 shadow-lg transform scale-105' 
+                      : 'text-gray-600 hover:text-gray-700 hover:bg-white/50'
+                  }`}
+                  onClick={() => setTab('history')}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${tab === 'history' ? 'bg-gray-500' : 'bg-gray-400'}`}></div>
+                    History
+                  </div>
+                </button>
+              </div>
             </div>
-            {/* Tabs */}
-            <div className="flex justify-center mb-4 gap-2">
-              <button
-                className={`px-4 py-2 rounded-t-lg font-semibold text-sm transition-all border-b-2 ${tab === 'tts' ? 'border-blue-600 text-blue-700 bg-white shadow' : 'border-transparent text-gray-500 bg-gray-100 hover:text-blue-600'}`}
-                onClick={() => setTab('tts')}
-              >
-                Text-to-Speech
-              </button>
-              <button
-                className={`px-4 py-2 rounded-t-lg font-semibold text-sm transition-all border-b-2 ${tab === 'stt' ? 'border-green-600 text-green-700 bg-white shadow' : 'border-transparent text-gray-500 bg-gray-100 hover:text-green-600'}`}
-                onClick={() => setTab('stt')}
-              >
-                Speech-to-Text
-              </button>
-              <button
-                className={`px-4 py-2 rounded-t-lg font-semibold text-sm transition-all border-b-2 ${tab === 'history' ? 'border-gray-600 text-gray-700 bg-white shadow' : 'border-transparent text-gray-500 bg-gray-100 hover:text-gray-600'}`}
-                onClick={() => setTab('history')}
-              >
-                History
-              </button>
-            </div>
-            {/* Tab content */}
+          </div>
+
+          {/* Tab Content */}
+          <div className="space-y-6">
             {tab === 'tts' && (
               <>
                 <TextInputForm onSubmit={handleTTS} loading={ttsLoading} audioEntries={filteredEntries} language={language} />
                 {ttsLoading && (
-                  <div className="flex justify-end mb-2">
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() => {
                         setTtsStopRequested(true);
                         ttsStopRequestedRef.current = true;
                       }}
-                      className="text-xs px-3 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all"
+                      className="px-6 py-2 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                     >
-                      Stop
+                      Stop Processing
                     </button>
                   </div>
                 )}
@@ -229,16 +299,16 @@ function App() {
               <>
                 <AudioUploadForm onSubmit={handleSTT} loading={sttLoading} language={language} />
                 {sttLoading && (
-                  <div className="flex justify-end mb-2">
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() => {
                         setSttStopRequested(true);
                         sttStopRequestedRef.current = true;
                       }}
-                      className="text-xs px-3 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all"
+                      className="px-6 py-2 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                     >
-                      Stop
+                      Stop Processing
                     </button>
                   </div>
                 )}

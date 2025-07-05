@@ -1,4 +1,4 @@
-import { HiSpeakerWave } from 'react-icons/hi2';
+import { HiSpeakerWave, HiPlus, HiXMark } from 'react-icons/hi2';
 import { HiOutlineDocumentArrowDown } from 'react-icons/hi2';
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
@@ -59,50 +59,115 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow p-5 mb-4 space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <HiSpeakerWave className="text-blue-500 text-xl" />
-        <h2 className="text-base font-bold text-gray-900">Text-to-Speech</h2>
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 rounded-2xl shadow-xl p-6 space-y-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+          <HiSpeakerWave className="text-white text-xl" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Text-to-Speech</h2>
+          <p className="text-sm text-gray-600">Convert text to natural speech</p>
+        </div>
       </div>
-      {fields.map((field, i) => {
-        const audio = getAudioForText(field.tr);
-        return (
-          <div key={i} className="flex flex-col gap-1 mb-3">
-            {imported && field.en && (
-              <div className="text-xs text-gray-500 font-medium mb-1 pl-1">{field.en}</div>
-            )}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={field.tr}
-                onChange={e => handleChange(i, e.target.value)}
-                className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm text-sm"
-                placeholder={imported ? `Translation ${i + 1}` : `Text ${i + 1}`}
-                required
-              />
-              {fields.length > 1 && (
-                <button type="button" onClick={() => removeField(i)} className="text-gray-400 hover:text-red-500 transition-colors text-lg font-bold px-2 py-1 rounded-full bg-gray-100 hover:bg-red-50 shadow-sm">&times;</button>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {fields.map((field, i) => {
+          const audio = getAudioForText(field.tr);
+          return (
+            <div key={i} className="bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 shadow-sm transition-all duration-200 hover:shadow-md">
+              {imported && field.en && (
+                <div className="text-xs text-gray-500 font-medium mb-2 px-2 py-1 bg-gray-100 rounded-lg inline-block">
+                  {field.en}
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={field.tr}
+                  onChange={e => handleChange(i, e.target.value)}
+                  className="flex-1 rounded-lg border border-blue-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white shadow-sm text-sm transition-all duration-200"
+                  placeholder={imported ? `Translation ${i + 1}` : `Enter text ${i + 1}...`}
+                  required
+                />
+                {fields.length > 1 && (
+                  <button 
+                    type="button" 
+                    onClick={() => removeField(i)} 
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 rounded-lg hover:shadow-sm"
+                    title="Remove field"
+                  >
+                    <HiXMark className="text-lg" />
+                  </button>
+                )}
+              </div>
+              {audio && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <audio 
+                    controls 
+                    src={`data:audio/wav;base64,${audio.audioBase64}`} 
+                    className="w-full rounded-lg shadow-sm" 
+                  />
+                </div>
               )}
             </div>
-            {audio && (
-              <audio controls src={`data:audio/wav;base64,${audio.audioBase64}`} className="w-full mt-1 mb-1 rounded shadow-sm" />
+          );
+        })}
+
+        <div className="flex flex-wrap gap-3 items-center pt-2">
+          <button 
+            type="button" 
+            onClick={addField} 
+            className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md"
+          >
+            <HiPlus className="text-base" />
+            Add Field
+          </button>
+          <button 
+            type="button" 
+            onClick={handleImportClick} 
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-blue-100 hover:text-blue-700 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md" 
+            title="Import Excel file"
+          >
+            <HiOutlineDocumentArrowDown className="text-base" />
+            Import Excel
+          </button>
+          <input 
+            type="file" 
+            accept=".xlsx,.xls" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+          />
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 hover:shadow-xl transform hover:scale-105"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Processing...
+              </div>
+            ) : (
+              'Convert to Speech'
             )}
-            {i < fields.length - 1 && <hr className="my-2 border-t border-gray-200" />}
+          </button>
+        </div>
+
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            Processing your text... You can stop the process above.
           </div>
-        );
-      })}
-      <div className="flex gap-2 items-center">
-        <button type="button" onClick={addField} className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 hover:bg-blue-100 shadow text-xs transition-all focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-white glow-btn">Add Field</button>
-        <button type="button" onClick={handleImportClick} className="bg-gray-100 text-gray-700 rounded-lg px-2 py-1 hover:bg-blue-100 shadow text-xs transition-all focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-white flex items-center gap-1" title="Import Excel"><HiOutlineDocumentArrowDown className="text-blue-500 text-base" /> Import</button>
-        <input type="file" accept=".xlsx,.xls" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-        <button type="submit" disabled={loading} className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold shadow hover:bg-blue-700 transition-all disabled:opacity-50 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-white glow-btn-main">{loading ? 'Processing...' : 'Send to TTS'}</button>
-      </div>
-      {loading && <div className="text-xs text-blue-600 mt-2">Processing... You can stop the process above.</div>}
-      {error && <div className="text-red-500 text-xs font-semibold mb-2">{error}</div>}
-      <style>{`
-        .glow-btn-main:hover, .glow-btn-main:focus { box-shadow: 0 0 0 3px #3b82f6, 0 2px 8px 0 #3b82f633; }
-        .glow-btn:hover, .glow-btn:focus { box-shadow: 0 0 0 2px #60a5fa, 0 1px 4px 0 #60a5fa33; }
-      `}</style>
-    </form>
+        )}
+        
+        {error && (
+          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            {error}
+          </div>
+        )}
+      </form>
+    </div>
   );
 } 
