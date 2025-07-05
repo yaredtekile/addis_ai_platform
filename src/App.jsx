@@ -141,8 +141,7 @@ function App() {
               </h1>
             </div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Advanced Text-to-Speech & Speech-to-Text for Amharic and Afan Oromo. 
-              Powered by cutting-edge AI technology.
+              Text-to-Speech & Speech-to-Text for Amharic and Afan Oromo. 
             </p>
           </div>
 
