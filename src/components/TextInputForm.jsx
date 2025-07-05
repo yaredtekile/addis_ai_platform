@@ -7,6 +7,7 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
   // If imported, fields: [{en: '...', tr: ''}], else: [{en: '', tr: ''}]
   const [fields, setFields] = useState([{ en: '', tr: '' }]);
   const [imported, setImported] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const fileInputRef = useRef();
   const [error, setError] = useState('');
 
@@ -30,6 +31,7 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
   };
 
   const handleImportClick = () => {
+    setShowInstructions(false);
     fileInputRef.current.click();
   };
 
@@ -122,15 +124,58 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
             <HiPlus className="text-base" />
             Add Field
           </button>
-          <button 
-            type="button" 
-            onClick={handleImportClick} 
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-blue-100 hover:text-blue-700 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md" 
-            title="Import Excel file"
-          >
-            <HiOutlineDocumentArrowDown className="text-base" />
-            Import Excel
-          </button>
+          
+          {/* Import Excel Section with Instructions */}
+          <div className="relative group">
+            <button 
+              type="button" 
+              onClick={() => setShowInstructions(!showInstructions)} 
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-blue-100 hover:text-blue-700 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md" 
+              title="Import Excel file"
+            >
+              <HiOutlineDocumentArrowDown className="text-base" />
+              Import Excel
+            </button>
+          </div>
+          
+          {/* Toggle Instructions */}
+          {showInstructions && (
+            <div className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 rounded-xl p-4 mt-3 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex-shrink-0 shadow-sm">
+                  <HiOutlineDocumentArrowDown className="text-white text-lg" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-2">📋 Excel Format Required:</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50 shadow-sm">
+                      <div className="font-semibold text-gray-800 mb-1">Column A</div>
+                      <div className="text-gray-700">English text</div>
+                      <div className="text-xs text-gray-600 mt-1">(can be empty)</div>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50 shadow-sm">
+                      <div className="font-semibold text-gray-800 mb-1">Column B</div>
+                      <div className="text-gray-700">
+                        {language === 'am' ? 'Amharic' : language === 'om' ? 'Afan Oromo' : 'Amharic/Afan Oromo'} text
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">(required)</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-700 bg-white/60 backdrop-blur-sm rounded-lg p-2 mb-3 border border-blue-200/50">
+                    💡 <strong>Important:</strong> Column A can be empty, but Column B must contain the text you want to convert to speech.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleImportClick}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+                  >
+                    Choose Excel File
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <input 
             type="file" 
             accept=".xlsx,.xls" 
