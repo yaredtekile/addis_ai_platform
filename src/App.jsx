@@ -196,7 +196,7 @@ function App() {
               </div>
               <div className="text-xs text-gray-500 mt-3 flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                Your API key is stored securely in your browser and never transmitted elsewhere
+                Your API key is stored securely in your browser
               </div>
             </div>
           </div>
