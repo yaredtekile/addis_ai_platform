@@ -1,5 +1,5 @@
 import { HiSpeakerWave, HiMicrophone, HiCheckCircle, HiDocumentArrowDown } from 'react-icons/hi2';
-import React from 'react';
+import React, { useState } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -9,6 +9,23 @@ export default function AudioList({ entries }) {
   // Filter entries by type
   const ttsEntries = entries.filter(e => e.type === 'tts');
   const sttEntries = entries.filter(e => e.type === 'stt');
+
+  // Helper for toggling long text
+  function ExpandableText({ text, maxLength = 100 }) {
+    const [expanded, setExpanded] = useState(false);
+    if (!text || text.length <= maxLength) return <span>{text}</span>;
+    return (
+      <>
+        <span>{expanded ? text : text.slice(0, maxLength) + '...'}</span>
+        <button
+          className="ml-2 text-blue-600 underline text-xs focus:outline-none"
+          onClick={() => setExpanded(e => !e)}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      </>
+    );
+  }
 
   const handleDownloadTTSZip = async () => {
     const zip = new JSZip();
@@ -223,7 +240,7 @@ export default function AudioList({ entries }) {
                 <>
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                     <div className="text-gray-800 font-medium text-base leading-relaxed">
-                      {entry.text}
+                      <ExpandableText text={entry.text} />
                     </div>
                   </div>
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
@@ -238,7 +255,7 @@ export default function AudioList({ entries }) {
                 <>
                   <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
                     <div className="text-green-900 font-semibold text-base leading-relaxed whitespace-pre-line tracking-wide">
-                      {entry.transcription_clean}
+                      <ExpandableText text={entry.transcription_clean} />
                     </div>
                   </div>
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
