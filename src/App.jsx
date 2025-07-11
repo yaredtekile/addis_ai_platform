@@ -4,7 +4,7 @@ import LanguageSelector from './components/LanguageSelector';
 import TextInputForm from './components/TextInputForm';
 import AudioUploadForm from './components/AudioUploadForm';
 import AudioList from './components/AudioList';
-import { ttsRequest, sttRequest } from './services/api';
+    import { ttsRequest, sttRequest, idbGet, idbSet, idbRemove, idbClear } from './services/api';
 import './App.css';
 
 // Helper to merge multiple base64 wav audio chunks into one
@@ -117,7 +117,7 @@ function App() {
   const [ttsLoading, setTtsLoading] = useState(false);
   const [sttLoading, setSttLoading] = useState(false);
   const [tab, setTab] = useState('tts');
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('tts_stt_api_key') || '');
+  const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [_, setSttStopRequested] = useState(false); // Only setter used for UI
   const [__, setTtsStopRequested] = useState(false); // Only setter used for UI
@@ -125,6 +125,7 @@ function App() {
   const sttStopRequestedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const sttAbortControllerRef = useRef(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Helper: convert File to base64
   const fileToBase64 = (file) => {
@@ -136,27 +137,43 @@ function App() {
     });
   };
 
-  // Load entries from localStorage on mount
+  // Load entries and apiKey from IndexedDB on mount
   useEffect(() => {
-    const saved = localStorage.getItem('tts_stt_entries');
-    if (saved) {
-      try {
-        setEntries(JSON.parse(saved));
-      } catch {
-        setEntries([]);
+    (async () => {
+      const saved = await idbGet('tts_stt_entries');
+      if (saved) {
+        setEntries(saved);
       }
-    }
+      const key = await idbGet('tts_stt_api_key');
+      if (key) {
+        setApiKey(key);
+      }
+      setDataLoaded(true);
+    })();
   }, []);
 
-  // Save entries to localStorage whenever they change
+  // Save entries to IndexedDB whenever they change (but only after initial load)
   useEffect(() => {
-    localStorage.setItem('tts_stt_entries', JSON.stringify(entries));
-  }, [entries]);
+    if (dataLoaded) {
+      idbSet('tts_stt_entries', entries);
+    }
+  }, [entries, dataLoaded]);
 
-  // Persist API key to localStorage
+  // Persist API key to IndexedDB
   useEffect(() => {
-    localStorage.setItem('tts_stt_api_key', apiKey);
-  }, [apiKey]);
+    if (dataLoaded) {
+      idbSet('tts_stt_api_key', apiKey);
+    }
+  }, [apiKey, dataLoaded]);
+
+  // Helper to update entries and persist immediately
+  const addEntry = async (entry) => {
+    setEntries(prev => {
+      const newEntries = [entry, ...prev];
+      idbSet('tts_stt_entries', newEntries);
+      return newEntries;
+    });
+  };
 
   const handleTTS = async (texts) => {
     setTtsLoading(true);
@@ -186,10 +203,7 @@ function App() {
           if (chunkResults.length > 1) {
             audioBase64 = await mergeWavBase64Chunks(chunkResults.map(d => d.audioBase64));
           }
-          setEntries(prev => [
-            { type: 'tts', text, audioBase64 },
-            ...prev
-          ]);
+          await addEntry({ type: 'tts', text, audioBase64 });
         }
       }
     } finally {
@@ -218,20 +232,17 @@ function App() {
             .filter(line => !/^```(text)?/.test(line.trim()))
             .join('\n')
             .trim();
-          setEntries(prev => [
-            {
-              type: 'stt',
-              transcription: data.transcription,
-              finish_reason: data.finish_reason,
-              usage_metadata: data.usage_metadata,
-              modelVersion: data.modelVersion,
-              transcription_raw: data.transcription_raw,
-              transcription_clean: cleanTrans,
-              audioBase64,
-              fileName: audioFile.name,
-            },
-            ...prev
-          ]);
+          await addEntry({
+            type: 'stt',
+            transcription: data.transcription,
+            finish_reason: data.finish_reason,
+            usage_metadata: data.usage_metadata,
+            modelVersion: data.modelVersion,
+            transcription_raw: data.transcription_raw,
+            transcription_clean: cleanTrans,
+            audioBase64,
+            fileName: audioFile.name,
+          });
         } catch {
           if (abortController.signal.aborted) break;
           alert(`STT failed for: ${audioFile.name}`);
@@ -247,6 +258,10 @@ function App() {
 
   // Filter entries for the current tab
   const filteredEntries = tab === 'history' ? entries : entries.filter(e => (tab === 'tts' ? e.type === 'tts' : e.type === 'stt'));
+
+  if (!dataLoaded) {
+    return <div className="min-h-screen flex items-center justify-center text-xl text-gray-600">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-0 px-0">
@@ -306,9 +321,9 @@ function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (window.confirm('Are you sure you want to clear all local storage and reset the app? This cannot be undone.')) {
-                        localStorage.clear();
+                        await idbClear();
                         setApiKey('');
                         setEntries([]);
                         setLanguage('');
@@ -345,7 +360,7 @@ function App() {
             {entries.length > 0 && (
               <button
                 type="button"
-                onClick={() => { setEntries([]); localStorage.removeItem('tts_stt_entries'); }}
+                onClick={async () => { setEntries([]); await idbRemove('tts_stt_entries'); }}
                 className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
               >
                 Clear History
@@ -422,7 +437,7 @@ function App() {
                     </button>
                   </div>
                 )}
-                <AudioList entries={entries.filter(e => e.type === 'stt')} />
+                <AudioList entries={entries.filter(e => e.type === 'tts')} />
               </>
             )}
             {tab === 'stt' && (
