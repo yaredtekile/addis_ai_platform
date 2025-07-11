@@ -123,6 +123,8 @@ function App() {
   const [__, setTtsStopRequested] = useState(false); // Only setter used for UI
   const ttsStopRequestedRef = useRef(false);
   const sttStopRequestedRef = useRef(false);
+  const ttsAbortControllerRef = useRef(null);
+  const sttAbortControllerRef = useRef(null);
 
   // Helper: convert File to base64
   const fileToBase64 = (file) => {
@@ -160,31 +162,41 @@ function App() {
     setTtsLoading(true);
     setTtsStopRequested(false);
     ttsStopRequestedRef.current = false;
+    const abortController = new AbortController();
+    ttsAbortControllerRef.current = abortController;
     try {
       for (const text of texts) {
         if (ttsStopRequestedRef.current) break;
         // Split text into 400-char chunks
         const chunks = splitTextByLength(text, 400);
-        try {
-          // Request TTS for each chunk
-          const data = await ttsRequest(language, chunks, apiKey);
+        let chunkResults = [];
+        for (const chunk of chunks) {
+          if (ttsStopRequestedRef.current) break;
+          try {
+            const data = await ttsRequest(language, chunk, apiKey, abortController.signal);
+            chunkResults.push(data);
+          } catch {
+            if (abortController.signal.aborted) break;
+            alert(`TTS failed for chunk: ${chunk}`);
+          }
+        }
+        if (chunkResults.length > 0) {
           // Merge audio
-          let audioBase64 = data[0].audioBase64;
-          if (data.length > 1) {
-            audioBase64 = await mergeWavBase64Chunks(data.map(d => d.audioBase64));
+          let audioBase64 = chunkResults[0].audioBase64;
+          if (chunkResults.length > 1) {
+            audioBase64 = await mergeWavBase64Chunks(chunkResults.map(d => d.audioBase64));
           }
           setEntries(prev => [
             { type: 'tts', text, audioBase64 },
             ...prev
           ]);
-        } catch {
-          alert(`TTS failed for: ${text}`);
         }
       }
     } finally {
       setTtsLoading(false);
       setTtsStopRequested(false);
       ttsStopRequestedRef.current = false;
+      ttsAbortControllerRef.current = null;
     }
   };
 
@@ -192,11 +204,13 @@ function App() {
     setSttLoading(true);
     setSttStopRequested(false);
     sttStopRequestedRef.current = false;
+    const abortController = new AbortController();
+    sttAbortControllerRef.current = abortController;
     try {
       for (const audioFile of audioFiles) {
         if (sttStopRequestedRef.current) break;
         try {
-          const data = await sttRequest(language, audioFile, apiKey);
+          const data = await sttRequest(language, audioFile, apiKey, abortController.signal);
           const audioBase64 = await fileToBase64(audioFile);
           let cleanTrans = data.transcription_clean || '';
           cleanTrans = cleanTrans
@@ -219,6 +233,7 @@ function App() {
             ...prev
           ]);
         } catch {
+          if (abortController.signal.aborted) break;
           alert(`STT failed for: ${audioFile.name}`);
         }
       }
@@ -226,6 +241,7 @@ function App() {
       setSttLoading(false);
       setSttStopRequested(false);
       sttStopRequestedRef.current = false;
+      sttAbortControllerRef.current = null;
     }
   };
 
@@ -396,6 +412,9 @@ function App() {
                       onClick={() => {
                         setTtsStopRequested(true);
                         ttsStopRequestedRef.current = true;
+                        if (ttsAbortControllerRef.current) {
+                          ttsAbortControllerRef.current.abort();
+                        }
                       }}
                       className="px-6 py-2 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                     >
@@ -416,6 +435,9 @@ function App() {
                       onClick={() => {
                         setSttStopRequested(true);
                         sttStopRequestedRef.current = true;
+                        if (sttAbortControllerRef.current) {
+                          sttAbortControllerRef.current.abort();
+                        }
                       }}
                       className="px-6 py-2 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                     >
