@@ -7,6 +7,110 @@ import AudioList from './components/AudioList';
 import { ttsRequest, sttRequest } from './services/api';
 import './App.css';
 
+// Helper to merge multiple base64 wav audio chunks into one
+async function mergeWavBase64Chunks(base64Chunks) {
+  // Decode all base64 chunks to ArrayBuffers
+  const audioBuffers = await Promise.all(
+    base64Chunks.map(async (base64) => {
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    })
+  );
+
+  // Use Web Audio API to decode and concatenate
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const decodedBuffers = await Promise.all(
+    audioBuffers.map(buf => audioCtx.decodeAudioData(buf.slice(0)))
+  );
+  // Calculate total length
+  const totalLength = decodedBuffers.reduce((sum, b) => sum + b.length, 0);
+  const sampleRate = decodedBuffers[0].sampleRate;
+  const numChannels = decodedBuffers[0].numberOfChannels;
+  // Create new buffer
+  const output = audioCtx.createBuffer(numChannels, totalLength, sampleRate);
+  let offset = 0;
+  for (const buf of decodedBuffers) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      output.getChannelData(ch).set(buf.getChannelData(ch), offset);
+    }
+    offset += buf.length;
+  }
+  // Encode back to WAV
+  // Helper to encode AudioBuffer to WAV
+  function encodeWAV(audioBuffer) {
+    const numChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+    const samples = audioBuffer.length;
+    const blockAlign = numChannels * bitDepth / 8;
+    const byteRate = sampleRate * blockAlign;
+    const buffer = new ArrayBuffer(44 + samples * blockAlign);
+    const view = new DataView(buffer);
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+    let offset = 0;
+    writeString(view, offset, 'RIFF'); offset += 4;
+    view.setUint32(offset, 36 + samples * blockAlign, true); offset += 4;
+    writeString(view, offset, 'WAVE'); offset += 4;
+    writeString(view, offset, 'fmt '); offset += 4;
+    view.setUint32(offset, 16, true); offset += 4;
+    view.setUint16(offset, format, true); offset += 2;
+    view.setUint16(offset, numChannels, true); offset += 2;
+    view.setUint32(offset, sampleRate, true); offset += 4;
+    view.setUint32(offset, byteRate, true); offset += 4;
+    view.setUint16(offset, blockAlign, true); offset += 2;
+    view.setUint16(offset, bitDepth, true); offset += 2;
+    writeString(view, offset, 'data'); offset += 4;
+    view.setUint32(offset, samples * blockAlign, true); offset += 4;
+    // Write PCM samples
+    for (let i = 0; i < samples; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        let sample = audioBuffer.getChannelData(ch)[i];
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return buffer;
+  }
+  const wavBuffer = encodeWAV(output);
+  // Convert to base64
+  const uint8 = new Uint8Array(wavBuffer);
+  let binary = '';
+  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+  return btoa(binary);
+}
+
+function splitTextByLength(text, maxLen) {
+  // Split on sentence boundaries if possible, else just chunk
+  const result = [];
+  let current = '';
+  for (const part of text.split(/([.!?]\s+)/)) {
+    if (current.length + part.length > maxLen) {
+      if (current) result.push(current);
+      current = part;
+    } else {
+      current += part;
+    }
+  }
+  if (current) {
+    // If still too long, split further
+    while (current.length > maxLen) {
+      result.push(current.slice(0, maxLen));
+      current = current.slice(maxLen);
+    }
+    if (current) result.push(current);
+  }
+  return result.filter(Boolean);
+}
+
 function App() {
   const [language, setLanguage] = useState('');
   const [entries, setEntries] = useState([]); // {type, text, audioBase64} or {type, transcription, audioBase64}
@@ -59,10 +163,18 @@ function App() {
     try {
       for (const text of texts) {
         if (ttsStopRequestedRef.current) break;
+        // Split text into 400-char chunks
+        const chunks = splitTextByLength(text, 400);
         try {
-          const data = await ttsRequest(language, [text], apiKey);
+          // Request TTS for each chunk
+          const data = await ttsRequest(language, chunks, apiKey);
+          // Merge audio
+          let audioBase64 = data[0].audioBase64;
+          if (data.length > 1) {
+            audioBase64 = await mergeWavBase64Chunks(data.map(d => d.audioBase64));
+          }
           setEntries(prev => [
-            { type: 'tts', text: data[0].text, audioBase64: data[0].audioBase64 },
+            { type: 'tts', text, audioBase64 },
             ...prev
           ]);
         } catch {
@@ -276,7 +388,7 @@ function App() {
           <div className="space-y-6">
             {tab === 'tts' && (
               <>
-                <TextInputForm onSubmit={handleTTS} loading={ttsLoading} audioEntries={filteredEntries} language={language} />
+                <TextInputForm onSubmit={handleTTS} loading={ttsLoading} audioEntries={filteredEntries} language={language} apiKey={apiKey}/>
                 {ttsLoading && (
                   <div className="flex justify-end">
                     <button
@@ -296,7 +408,7 @@ function App() {
             )}
             {tab === 'stt' && (
               <>
-                <AudioUploadForm onSubmit={handleSTT} loading={sttLoading} language={language} />
+                <AudioUploadForm onSubmit={handleSTT} loading={sttLoading} language={language} apiKey={apiKey} />
                 {sttLoading && (
                   <div className="flex justify-end">
                     <button

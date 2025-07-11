@@ -3,7 +3,7 @@ import { HiOutlineDocumentArrowDown } from 'react-icons/hi2';
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 
-export default function TextInputForm({ onSubmit, loading, audioEntries = [], language }) {
+export default function TextInputForm({ onSubmit, loading, audioEntries = [], language, apiKey }) {
   // If imported, fields: [{en: '...', tr: ''}], else: [{en: '', tr: ''}]
   const [fields, setFields] = useState([{ en: '', tr: '' }]);
   const [imported, setImported] = useState(false);
@@ -24,6 +24,10 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
     e.preventDefault();
     if (!language) {
       setError('Please select a language before submitting.');
+      return;
+    }
+    if (!apiKey){
+      setError('Please enter your API key before submitting.');
       return;
     }
     setError('');
@@ -83,13 +87,18 @@ export default function TextInputForm({ onSubmit, loading, audioEntries = [], la
                 </div>
               )}
               <div className="flex items-center gap-3">
-                <input
-                  type="text"
+                <textarea
                   value={field.tr}
                   onChange={e => handleChange(i, e.target.value)}
-                  className="flex-1 rounded-lg border border-blue-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white shadow-sm text-sm transition-all duration-200"
+                  className="flex-1 rounded-lg border border-blue-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white shadow-sm text-sm transition-all duration-200 resize-none max-h-[10rem]"
                   placeholder={imported ? `Translation ${i + 1}` : `Enter text ${i + 1}...`}
                   required
+                  rows={1}
+                  style={{height: 'auto', maxHeight: '10rem'}}
+                  onInput={e => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 10 * 16) + 'px';
+                  }}
                 />
                 {fields.length > 1 && (
                   <button 

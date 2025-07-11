@@ -1,7 +1,7 @@
 import { HiMicrophone, HiXMark, HiCloudArrowUp } from 'react-icons/hi2';
 import React, { useRef, useState } from 'react';
 
-export default function AudioUploadForm({ onSubmit, loading, language }) {
+export default function AudioUploadForm({ onSubmit, loading, language, apiKey }) {
   const [files, setFiles] = useState([]);
   const fileInputRef = useRef();
   const [error, setError] = useState('');
@@ -19,6 +19,10 @@ export default function AudioUploadForm({ onSubmit, loading, language }) {
     e.preventDefault();
     if (!language) {
       setError('Please select a language before submitting.');
+      return;
+    }
+    if (!apiKey){
+      setError('Please enter your API key before submitting.');
       return;
     }
     setError('');
