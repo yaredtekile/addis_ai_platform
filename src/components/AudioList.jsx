@@ -4,11 +4,25 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 export default function AudioList({ entries }) {
+  const [sttFilter, setSttFilter] = useState('all'); // 'all', 'v1', 'v2'
+  
   if (!entries.length) return null;
 
   // Filter entries by type
   const ttsEntries = entries.filter(e => e.type === 'tts');
-  const sttEntries = entries.filter(e => e.type === 'stt');
+  const allSttEntries = entries.filter(e => e.type === 'stt');
+  
+  // Filter STT entries by version
+  const sttEntries = sttFilter === 'all' 
+    ? allSttEntries 
+    : allSttEntries.filter(e => {
+        if (sttFilter === 'v1') {
+          return e.modelVersion === 'v1' || e.modelVersion === 'Addis-፩-አሌፍ';
+        } else if (sttFilter === 'v2') {
+          return e.modelVersion === 'v2';
+        }
+        return true;
+      });
 
   // Helper for toggling long text
   function ExpandableText({ text, maxLength = 100 }) {
@@ -190,8 +204,31 @@ export default function AudioList({ entries }) {
         </div>
       )}
       
+      {/* STT Version Filter */}
+      {allSttEntries.length > 0 && (
+        <div className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Filter STT by Version:</span>
+            <select
+              value={sttFilter}
+              onChange={(e) => setSttFilter(e.target.value)}
+              className="rounded-lg border border-gray-200 px-3 py-1 text-sm font-medium bg-white/80 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200"
+            >
+              <option value="all">All Versions ({allSttEntries.length})</option>
+              <option value="v1">V1 ({allSttEntries.filter(e => e.modelVersion === 'v1' || e.modelVersion === 'Addis-፩-አሌፍ').length})</option>
+              <option value="v2">V2 ({allSttEntries.filter(e => e.modelVersion === 'v2').length})</option>
+            </select>
+            {sttFilter !== 'all' && (
+              <span className="text-xs text-gray-500">
+                Showing {sttEntries.length} of {allSttEntries.length} STT entries
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      
       <div className="space-y-4">
-        {entries.map((entry, idx) => (
+        {[...ttsEntries, ...sttEntries].map((entry, idx) => (
           <div
             key={idx}
             className={`bg-white/90 backdrop-blur-sm border rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
