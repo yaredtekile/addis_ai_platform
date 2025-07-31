@@ -4,7 +4,9 @@ import LanguageSelector from './components/LanguageSelector';
 import TextInputForm from './components/TextInputForm';
 import AudioUploadForm from './components/AudioUploadForm';
 import AudioList from './components/AudioList';
-    import { ttsRequest, sttRequest, idbGet, idbSet, idbRemove, idbClear } from './services/api';
+import SttVersionSelector from './components/SttVersionSelector';
+
+import { ttsRequest, sttRequest, idbGet, idbSet, idbRemove, idbClear } from './services/api';
 import './App.css';
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
   const [tab, setTab] = useState('tts');
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [sttVersion, setSttVersion] = useState('v2');
+
   const [_, setSttStopRequested] = useState(false); // Only setter used for UI
   const [__, setTtsStopRequested] = useState(false); // Only setter used for UI
   const ttsStopRequestedRef = useRef(false);
@@ -33,7 +37,7 @@ function App() {
     });
   };
 
-  // Load entries and apiKey from IndexedDB on mount
+  // Load entries, apiKey, and apiVersion from IndexedDB on mount
   useEffect(() => {
     (async () => {
       const saved = await idbGet('tts_stt_entries');
@@ -44,6 +48,11 @@ function App() {
       if (key) {
         setApiKey(key);
       }
+      const version = await idbGet('tts_stt_version');
+      if (version) {
+        setSttVersion(version);
+      }
+
       setDataLoaded(true);
     })();
   }, []);
@@ -61,6 +70,13 @@ function App() {
       idbSet('tts_stt_api_key', apiKey);
     }
   }, [apiKey, dataLoaded]);
+
+  // Persist STT version to IndexedDB
+  useEffect(() => {
+    if (dataLoaded) {
+      idbSet('tts_stt_version', sttVersion);
+    }
+  }, [sttVersion, dataLoaded]);
 
   // Helper to update entries and persist immediately
   const addEntry = async (entry) => {
@@ -81,7 +97,7 @@ function App() {
       for (const text of texts) {
         if (ttsStopRequestedRef.current) break;
         try {
-          const data = await ttsRequest(language, text, apiKey, abortController.signal);
+          const data = await ttsRequest(language, text, apiKey, abortController.signal, 'v1');
           await addEntry({ type: 'tts', text, audioBase64: data.audioBase64 });
         } catch {
           if (abortController.signal.aborted) break;
@@ -106,7 +122,7 @@ function App() {
       for (const audioFile of audioFiles) {
         if (sttStopRequestedRef.current) break;
         try {
-          const data = await sttRequest(language, audioFile, apiKey, abortController.signal);
+          const data = await sttRequest(language, audioFile, apiKey, abortController.signal, sttVersion);
           const audioBase64 = await fileToBase64(audioFile);
           let cleanTrans = data.transcription_clean || '';
           cleanTrans = cleanTrans
@@ -209,6 +225,8 @@ function App() {
                         setApiKey('');
                         setEntries([]);
                         setLanguage('');
+                        setSttVersion('v2');
+
                         window.location.reload();
                       }
                     }}
@@ -324,6 +342,7 @@ function App() {
             )}
             {tab === 'stt' && (
               <>
+                <SttVersionSelector selectedVersion={sttVersion} onVersionChange={setSttVersion} />
                 <AudioUploadForm onSubmit={handleSTT} loading={sttLoading} language={language} apiKey={apiKey} />
                 {sttLoading && (
                   <div className="flex justify-end">

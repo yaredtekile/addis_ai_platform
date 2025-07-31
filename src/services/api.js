@@ -1,12 +1,18 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL_V1 = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL_V2 = import.meta.env.VITE_API_BASE_URL_V2 || '';
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
-export const ttsRequest = async (language, text, apiKey, signal) => {
+// Function to get the appropriate base URL based on version
+const getApiBaseUrl = (version = 'v1') => {
+  return version === 'v2' ? API_BASE_URL_V2 : API_BASE_URL_V1;
+};
+
+export const ttsRequest = async (language, text, apiKey, signal, version = 'v1') => {
   // text: single string
   const response = await axios.post(
-    `${API_BASE_URL}/audio`,
+    `${getApiBaseUrl(version)}/audio`,
     { text, language },
     {
       headers: {
@@ -20,12 +26,21 @@ export const ttsRequest = async (language, text, apiKey, signal) => {
   return { text, audioBase64: response.data.audio.replace(/^data:audio\/wav;base64,/, '') };
 };
 
-export const sttRequest = async (language, audioFile, apiKey, signal) => {
+export const sttRequest = async (language, audioFile, apiKey, signal, version = 'v2') => {
   const formData = new FormData();
-  formData.append('chat_audio_input', audioFile);
-  formData.append('request_data', JSON.stringify({ target_language: language }));
+  
+  if (version === 'v2') {
+    // V2 format: audio field and request_data with language_code
+    formData.append('audio', audioFile);
+    formData.append('request_data', JSON.stringify({ language_code: language }));
+  } else {
+    // V1 format: chat_audio_input and request_data with target_language
+    formData.append('chat_audio_input', audioFile);
+    formData.append('request_data', JSON.stringify({ target_language: language }));
+  }
+  
   const response = await axios.post(
-    `${API_BASE_URL}/chat_generate`,
+    `${getApiBaseUrl(version)}${version === 'v2' ? '/stt' : '/chat_generate'}`,
     formData,
     {
       headers: {
@@ -36,14 +51,30 @@ export const sttRequest = async (language, audioFile, apiKey, signal) => {
     }
   );
   const data = response.data.data || response.data;
-  return {
-    transcription: data.response_text,
-    finish_reason: data.finish_reason,
-    usage_metadata: data.usage_metadata,
-    modelVersion: data.modelVersion,
-    transcription_raw: data.transcription_raw,
-    transcription_clean: data.transcription_clean,
-  };
+  
+  if (version === 'v2') {
+    // V2 format: transcription is directly in data.transcription
+    return {
+      transcription: data.transcription,
+      usage_metadata: data.usage_metadata,
+      confidence: data.confidence,
+      // For V2, we'll use transcription as both raw and clean since there's no separate field
+      transcription_raw: data.transcription,
+      transcription_clean: data.transcription,
+      finish_reason: 'completed', // V2 doesn't provide this, so we set a default
+      modelVersion: 'v2' // V2 doesn't provide this, so we set a default
+    };
+  } else {
+    // V1 format: response_text and other fields
+    return {
+      transcription: data.response_text,
+      finish_reason: data.finish_reason,
+      usage_metadata: data.usage_metadata,
+      modelVersion: data.modelVersion,
+      transcription_raw: data.transcription_raw,
+      transcription_clean: data.transcription_clean,
+    };
+  }
 };
 
 // IndexedDB utility for key-value storage
