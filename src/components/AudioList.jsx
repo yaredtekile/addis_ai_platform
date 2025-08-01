@@ -308,6 +308,12 @@ export default function AudioList({ entries }) {
                       Model: {entry.modelVersion}
                     </div>
                   )}
+                  {entry.confidence && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      Confidence: {(entry.confidence * 100).toFixed(1)}%
+                    </div>
+                  )}
                 </>
               )}
             </div>

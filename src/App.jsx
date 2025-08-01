@@ -138,6 +138,7 @@ function App() {
             modelVersion: data.modelVersion,
             transcription_raw: data.transcription_raw,
             transcription_clean: cleanTrans,
+            confidence: data.confidence,
             audioBase64,
             fileName: audioFile.name,
           });
@@ -234,6 +235,22 @@ function App() {
                     title="Clear all local storage and reset app"
                   >
                     Reset App
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to clear all browser storage? This will remove all saved data including API key, entries, and settings.')) {
+                        await idbClear();
+                        setApiKey('');
+                        setEntries([]);
+                        setLanguage('');
+                        setSttVersion('v2');
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+                    title="Clear all browser storage without reloading"
+                  >
+                    Clear Storage
                   </button>
                 </div>
               </div>
